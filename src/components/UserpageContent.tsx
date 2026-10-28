@@ -293,13 +293,14 @@ function renderNodes(nodes: BbCodeNode[], playerName: string): ReactNode[] {
         return (
           <div
             key={key}
-            className={
-              node.name === "left"
-                ? "text-left"
-                : node.name === "right"
-                  ? "text-right"
-                  : "text-center"
-            }
+            style={{
+              textAlign:
+                node.name === "left"
+                  ? "left"
+                  : node.name === "right"
+                    ? "right"
+                    : "center",
+            }}
           >
             {children}
           </div>
@@ -507,7 +508,7 @@ function renderNodes(nodes: BbCodeNode[], playerName: string): ReactNode[] {
                 title={area.title}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
-                className="absolute"
+                className="group absolute"
                 style={{
                   left: `${area.x}%`,
                   top: `${area.y}%`,
@@ -515,7 +516,13 @@ function renderNodes(nodes: BbCodeNode[], playerName: string): ReactNode[] {
                   height: `${area.height}%`,
                 }}
               >
-                <span className="sr-only">{area.title || "Image link"}</span>
+                {area.title ? (
+                  <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                    {area.title}
+                  </span>
+                ) : (
+                  <span className="sr-only">Image link</span>
+                )}
               </a>
             ))}
           </div>

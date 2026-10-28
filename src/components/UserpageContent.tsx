@@ -77,12 +77,18 @@ function isSafeWebUrl(value: string): boolean {
   }
 }
 
-function isSafeMediaUrl(value: string): boolean {
+function normalizeMediaUrl(value: string): string | null {
+  const trimmed = value.trim();
+  const normalized = trimmed.startsWith("//")
+    ? `${window.location.protocol}${trimmed}`
+    : trimmed;
   try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
+    const url = new URL(normalized);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? normalized
+      : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -168,27 +174,33 @@ function parseBbCode(content: string): BbCodeNode[] {
 
 function renderPlainText(value: string, playerName: string): ReactNode {
   const withPlayerName = value.replace(/\[me\]/gi, playerName);
-  const urlPattern = /((?:https?:\/\/|www\.)[^\s<>"']+)/gi;
-  const parts = withPlayerName.split(urlPattern);
+  const linkPattern =
+    /((?:(?:https?:\/\/|ftp:\/\/|www\.)[^\s<>"']+|[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+))/gi;
+  const parts = withPlayerName.split(linkPattern);
 
   return parts.map((part, index) => {
     if (index % 2 === 1) {
-      const url = part.replace(/[),.!?;:]+$/, "");
-      const trailingText = part.slice(url.length);
-      const href = url.startsWith("www.") ? `https://${url}` : url;
+      const link = part.replace(/[),.!?;:]+$/, "");
+      const trailingText = part.slice(link.length);
+      const isEmail = link.includes("@") && !/^(?:https?|ftp):/i.test(link);
+      const href = isEmail
+        ? `mailto:${link}`
+        : link.startsWith("www.")
+          ? `https://${link}`
+          : link;
       return (
         <Fragment key={index}>
-          {isSafeWebUrl(href) ? (
+          {isEmail || isSafeWebUrl(href) ? (
             <a
               href={href}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
+              target={isEmail ? undefined : "_blank"}
+              rel={isEmail ? undefined : "noopener noreferrer nofollow"}
               className="text-accent hover:text-accent-hover underline underline-offset-2"
             >
-              {url}
+              {link}
             </a>
           ) : (
-            url
+            link
           )}
           {trailingText}
         </Fragment>
@@ -288,7 +300,7 @@ function renderNodes(nodes: BbCodeNode[], playerName: string): ReactNode[] {
             className="my-2 rounded-xl border border-line bg-surface-2 px-3 py-2"
           >
             <summary className="cursor-pointer font-medium text-accent">
-              {node.name === "spoilerbox" ? "SPOILER" : node.attribute || "Show"}
+              {node.name === "spoilerbox" ? "SPOILER" : node.attribute}
             </summary>
             <div className="mt-2 whitespace-pre-wrap">{children}</div>
           </details>
@@ -366,9 +378,24 @@ function renderNodes(nodes: BbCodeNode[], playerName: string): ReactNode[] {
             <List
               className={`my-2 space-y-1 pl-6 ${ordered ? "list-decimal" : "list-disc"}`}
             >
-              {items.map((item, itemIndex) => (
-                <li key={itemIndex}>{renderNodes(item.children, playerName)}</li>
-              ))}
+              {items.map((item, itemIndex) => {
+                const itemChildren = [...item.children];
+                while (itemChildren[0]?.type === "text") {
+                  itemChildren[0].value = itemChildren[0].value.trimStart();
+                  if (itemChildren[0].value) break;
+                  itemChildren.shift();
+                }
+                while (itemChildren[itemChildren.length - 1]?.type === "text") {
+                  const last = itemChildren[itemChildren.length - 1];
+                  if (last?.type !== "text") break;
+                  last.value = last.value.trimEnd();
+                  if (last.value) break;
+                  itemChildren.pop();
+                }
+                return (
+                  <li key={itemIndex}>{renderNodes(itemChildren, playerName)}</li>
+                );
+              })}
             </List>
           </Fragment>
         );
@@ -390,13 +417,13 @@ function renderNodes(nodes: BbCodeNode[], playerName: string): ReactNode[] {
         const src = node.children.map((child) =>
           child.type === "text" ? child.value : "",
         ).join("").trim();
-        return isSafeMediaUrl(src) ? (
+        const imageUrl = normalizeMediaUrl(src);
+        return imageUrl ? (
           <img
             key={key}
-            src={src}
+            src={imageUrl}
             alt=""
             loading="lazy"
-            referrerPolicy="no-referrer"
             className="my-2 max-h-96 max-w-full rounded-lg object-contain"
           />
         ) : null;
@@ -407,7 +434,8 @@ function renderNodes(nodes: BbCodeNode[], playerName: string): ReactNode[] {
           .join("")
           .trim()
           .split(/\r?\n/);
-        if (!isSafeMediaUrl(imageUrl)) return null;
+        const normalizedImageUrl = normalizeMediaUrl(imageUrl);
+        if (!normalizedImageUrl) return null;
         const areas = areaLines
           .map((line): ImageMapArea | null => {
             const [x, y, width, height, redirect, ...titleParts] =
@@ -437,10 +465,9 @@ function renderNodes(nodes: BbCodeNode[], playerName: string): ReactNode[] {
         return (
           <div key={key} className="relative my-2 w-fit max-w-full">
             <img
-              src={imageUrl}
+              src={normalizedImageUrl}
               alt=""
               loading="lazy"
-              referrerPolicy="no-referrer"
               className="max-h-96 max-w-full rounded-lg object-contain"
             />
             {areas.map((area, areaIndex) => (

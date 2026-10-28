@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 import { Avatar } from "@/components/Avatar";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { UserpageContent } from "@/components/UserpageContent";
 import { api } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/http";
 import type { Player } from "@/lib/api/types";
@@ -328,8 +329,9 @@ function UserpageSection({ player }: { player: Player }) {
       <h2 className="font-semibold">Userpage</h2>
       <p className="mt-1 text-sm text-muted">
         Shown in the "me!" tab on your profile. Supports BBCode formatting
-        such as [b]bold[/b], [i]italic[/i], [color=#ff66aa]color[/color], and
-        [url=https://osu.ppy.sh]links[/url]. Use [me] to insert your username.
+        such as [b]bold[/b], [i]italic[/i], [color=#ff66aa]color[/color],
+        [list][*]lists[/list], [url=https://osu.ppy.sh]links[/url], and
+        [spoiler]spoilers[/spoiler]. Use [me] to insert your username.
       </p>
 
       <form onSubmit={onSubmit} className="mt-4 space-y-3">
@@ -344,6 +346,15 @@ function UserpageSection({ player }: { player: Player }) {
         <p className="text-right text-xs text-muted">
           {content.length} / {MAX_USERPAGE_LENGTH}
         </p>
+
+        {content.trim() && (
+          <div className="rounded-xl border border-line bg-surface px-4 py-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+              Preview
+            </p>
+            <UserpageContent content={content} playerName={player.name} />
+          </div>
+        )}
 
         {error && <p className="text-sm text-red-300">{error}</p>}
         {saved && !error && (

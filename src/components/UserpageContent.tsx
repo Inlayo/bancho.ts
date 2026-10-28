@@ -507,7 +507,7 @@ function renderNodes(nodes: BbCodeNode[], playerName: string): ReactNode[] {
                 title={area.title}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
-                className="absolute border border-transparent hover:border-accent"
+                className="absolute"
                 style={{
                   left: `${area.x}%`,
                   top: `${area.y}%`,

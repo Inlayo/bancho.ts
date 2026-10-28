@@ -328,10 +328,16 @@ function UserpageSection({ player }: { player: Player }) {
     <Card>
       <h2 className="font-semibold">Userpage</h2>
       <p className="mt-1 text-sm text-muted">
-        Shown in the "me!" tab on your profile. Supports BBCode formatting
-        such as [b]bold[/b], [i]italic[/i], [color=#ff66aa]color[/color],
-        [list][*]lists[/list], [url=https://osu.ppy.sh]links[/url], and
-        [spoiler]spoilers[/spoiler]. Use [me] to insert your username.
+        Shown in the "me!" tab on your profile.{" "}
+        <a
+          href="https://github.com/ppy/osu-wiki/blob/master/wiki/BBCode/en.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-accent underline underline-offset-2 hover:text-accent-hover"
+        >
+          Learn about BBCode
+        </a>
+        .
       </p>
 
       <form onSubmit={onSubmit} className="mt-4 space-y-3">

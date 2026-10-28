@@ -514,8 +514,9 @@ function renderNodes(nodes: BbCodeNode[], playerName: string): ReactNode[] {
         const src = node.children.map((child) =>
           child.type === "text" ? child.value : "",
         ).join("").trim();
-        return isSafeMediaUrl(src) ? (
-          <audio key={key} controls preload="none" src={src} className="my-2 max-w-full" />
+        const audioUrl = normalizeMediaUrl(src);
+        return audioUrl ? (
+          <audio key={key} controls preload="none" src={audioUrl} className="my-2 max-w-full" />
         ) : null;
       }
       case "heading":

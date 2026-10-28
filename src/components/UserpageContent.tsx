@@ -33,6 +33,61 @@ interface ImageMapArea {
   title: string;
 }
 
+function isImageMapAreaStart(tokens: string[], index: number): boolean {
+  const coordinates = tokens.slice(index, index + 4).map(Number);
+  const redirect = tokens[index + 4];
+  return (
+    coordinates.length === 4 &&
+    coordinates.every(
+      (value) => Number.isFinite(value) && value >= 0 && value <= 100,
+    ) &&
+    redirect !== undefined &&
+    (redirect === "#" ||
+      isSafeWebUrl(redirect.startsWith("www.") ? `https://${redirect}` : redirect))
+  );
+}
+
+function parseImageMapAreas(tokens: string[]): ImageMapArea[] {
+  const areas: ImageMapArea[] = [];
+  let cursor = 0;
+
+  while (cursor < tokens.length) {
+    if (!isImageMapAreaStart(tokens, cursor)) {
+      cursor += 1;
+      continue;
+    }
+
+    const [x, y, width, height] = tokens.slice(cursor, cursor + 4).map(Number);
+    const redirect = tokens[cursor + 4];
+    const titleStart = cursor + 5;
+    let nextAreaStart = titleStart;
+    while (
+      nextAreaStart < tokens.length &&
+      !isImageMapAreaStart(tokens, nextAreaStart)
+    ) {
+      nextAreaStart += 1;
+    }
+
+    if (redirect && redirect !== "#") {
+      const href = redirect.startsWith("www.")
+        ? `https://${redirect}`
+        : redirect;
+      areas.push({
+        x,
+        y,
+        width,
+        height,
+        href,
+        title: tokens.slice(titleStart, nextAreaStart).join(" "),
+      });
+    }
+
+    cursor = nextAreaStart;
+  }
+
+  return areas;
+}
+
 const TAG_PATTERN =
   /\[code\]([\s\S]*?)\[\/code\]|\[\/?([a-z*]+)(?:=([^\]\r\n]*))?\]/gi;
 const SUPPORTED_TAGS = new Set([
@@ -429,39 +484,14 @@ function renderNodes(nodes: BbCodeNode[], playerName: string): ReactNode[] {
         ) : null;
       }
       case "imagemap": {
-        const [imageUrl = "", ...areaLines] = node.children
+        const content = node.children
           .map((child) => (child.type === "text" ? child.value : ""))
           .join("")
-          .trim()
-          .split(/\r?\n/);
+          .trim();
+        const [imageUrl = "", ...areaTokens] = content.split(/\s+/);
         const normalizedImageUrl = normalizeMediaUrl(imageUrl);
         if (!normalizedImageUrl) return null;
-        const areas = areaLines
-          .map((line): ImageMapArea | null => {
-            const [x, y, width, height, redirect, ...titleParts] =
-              line.trim().split(/\s+/);
-            const values = [x, y, width, height].map(Number);
-            if (
-              values.some((value) => !Number.isFinite(value) || value < 0 || value > 100) ||
-              !redirect ||
-              redirect === "#"
-            ) {
-              return null;
-            }
-            const href = redirect.startsWith("www.")
-              ? `https://${redirect}`
-              : redirect;
-            if (!isSafeWebUrl(href)) return null;
-            return {
-              x: values[0],
-              y: values[1],
-              width: values[2],
-              height: values[3],
-              href,
-              title: titleParts.join(" "),
-            };
-          })
-          .filter((area): area is ImageMapArea => area !== null);
+        const areas = parseImageMapAreas(areaTokens);
         return (
           <div key={key} className="relative my-2 w-fit max-w-full">
             <img

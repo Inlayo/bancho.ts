@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 
 import { Avatar } from "@/components/Avatar";
@@ -59,6 +59,28 @@ function AvatarSection({ player }: { player: Player }) {
   const [uploaded, setUploaded] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setPreviewUrl(reader.result);
+      } else {
+        setError("Could not preview this image. Please try another file.");
+      }
+    };
+    reader.onerror = () => {
+      setError("Could not preview this image. Please try another file.");
+    };
+    reader.readAsDataURL(selectedFile);
+
+    return () => reader.abort();
+  }, [selectedFile]);
+
   function onSelectFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
     setError(null);
@@ -76,11 +98,7 @@ function AvatarSection({ player }: { player: Player }) {
       return;
     }
 
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
     setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
   }
 
   async function onUpload() {
@@ -93,10 +111,6 @@ function AvatarSection({ player }: { player: Player }) {
       await api.uploadAvatar(player.id, selectedFile);
       refreshAvatar();
       setSelectedFile(null);
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-      }
       setUploaded(true);
     } catch (uploadError) {
       setError(

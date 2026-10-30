@@ -293,6 +293,11 @@ function renderNodes(nodes: BbCodeNode[], playerName: string): ReactNode[] {
         return (
           <div
             key={key}
+            className={
+              node.name === "centre" || node.name === "center"
+                ? "[&_img]:mx-auto [&_div]:mx-auto"
+                : undefined
+            }
             style={{
               textAlign:
                 node.name === "left"

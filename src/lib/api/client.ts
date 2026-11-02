@@ -132,6 +132,11 @@ export const api = {
   fetchAdminUser: (userId: number) =>
     apiGet<AdminUser>(`/v2/admin/users/${userId}`),
 
+  updateAdminUserMemo: (userId: number, memo: string) =>
+    apiPut<{ id: number; memo: string | null }>(`/v2/admin/users/${userId}/memo`, {
+      memo,
+    }),
+
   updateAdminUserPrivileges: (userId: number, privileges: number) =>
     apiPatch<{ id: number; priv: number }>(
       `/v2/admin/users/${userId}/privileges`,

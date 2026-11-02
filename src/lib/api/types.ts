@@ -61,6 +61,7 @@ export interface AdminUserSummary {
 
 export interface AdminUser extends AdminUserSummary {
   creation_time: number;
+  admin_note: string | null;
   stats: Omit<PlayerStats, "rank" | "country_rank">[];
 }
 

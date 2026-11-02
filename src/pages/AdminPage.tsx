@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 
 import { Avatar } from "@/components/Avatar";
@@ -183,6 +183,9 @@ export function AdminPage() {
                 api.updateAdminUserPrivileges(selectedUser.id, privileges),
               )
             }
+            onSaveMemo={(memo) =>
+              userMutation.mutate(api.updateAdminUserMemo(selectedUser.id, memo))
+            }
             onRestrict={() =>
               userMutation.mutate(api.restrictAdminUser(selectedUser.id, reason))
             }
@@ -275,6 +278,7 @@ function PlayerManagement({
   pending,
   error,
   onUpdatePrivileges,
+  onSaveMemo,
   onRestrict,
   onUnrestrict,
   onWipeScores,
@@ -288,10 +292,16 @@ function PlayerManagement({
   pending: boolean;
   error: Error | null;
   onUpdatePrivileges: (privileges: number) => void;
+  onSaveMemo: (memo: string) => void;
   onRestrict: () => void;
   onUnrestrict: () => void;
   onWipeScores: () => void;
 }) {
+  const [memoDraft, setMemoDraft] = useState(user.admin_note ?? "");
+  useEffect(() => {
+    setMemoDraft(user.admin_note ?? "");
+  }, [user.id, user.admin_note]);
+
   const restricted = (user.priv & UNRESTRICTED) === 0;
   const hasStaffRole = (user.priv & (1 << 12 | ADMINISTRATOR | DEVELOPER)) !== 0;
   const canEditRoles = canManageStaff || !hasStaffRole;
@@ -387,6 +397,34 @@ function PlayerManagement({
               </button>
             )}
           </div>
+        </div>
+      </Card>
+
+      <Card className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold">User memo</h3>
+          <span className="text-xs text-muted">For staff only</span>
+        </div>
+        <label className="block space-y-1.5">
+          <textarea
+            value={memoDraft}
+            onChange={(event) => setMemoDraft(event.target.value)}
+            rows={5}
+            maxLength={2000}
+            className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
+            placeholder="Leave a note for this user..."
+            disabled={pending}
+          />
+        </label>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            disabled={pending || memoDraft === (user.admin_note ?? "")}
+            onClick={() => onSaveMemo(memoDraft)}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            Save memo
+          </button>
         </div>
       </Card>
 

@@ -5,9 +5,9 @@ import { Link, Navigate } from "react-router-dom";
 import { Avatar } from "@/components/Avatar";
 import { BeatmapThumb } from "@/components/BeatmapThumb";
 import { Card } from "@/components/ui/Card";
-import { ErrorState, LoadingState } from "@/components/states";
+import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { api } from "@/lib/api/client";
-import type { AdminMap, AdminUser } from "@/lib/api/types";
+import type { AdminMap, AdminUser, Player } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth";
 import { formatNumber } from "@/lib/format";
 import { usePageTitle } from "@/lib/usePageTitle";
@@ -72,6 +72,23 @@ export function AdminPage() {
       isAdmin,
   });
 
+  const serverStatsQuery = useQuery({
+    queryKey: ["server-stats"],
+    queryFn: () => api.fetchServerStats().then((result) => result.data),
+    enabled: isAdmin,
+    refetchInterval: 30_000,
+  });
+
+  const onlinePlayersQuery = useQuery({
+    queryKey: ["admin-online-players"],
+    queryFn: () =>
+      api.fetchPlayers({ online: true, page: 1, pageSize: 20 }).then(
+        (result) => result.data,
+      ),
+    enabled: isAdmin,
+    refetchInterval: 30_000,
+  });
+
   const userQuery = useQuery({
     queryKey: ["admin-user", selectedUserId],
     queryFn: () => api.fetchAdminUser(selectedUserId!).then((result) => result.data),
@@ -116,6 +133,70 @@ export function AdminPage() {
           Manage player access, scores, privileges, and beatmap status.
         </p>
       </header>
+
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Server overview</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Card className="space-y-1">
+            <p className="text-sm text-muted">Players online</p>
+            <p className="text-2xl font-semibold text-accent">
+              {serverStatsQuery.data
+                ? formatNumber(serverStatsQuery.data.online_players)
+                : "—"}
+            </p>
+          </Card>
+          <Card className="space-y-1">
+            <p className="text-sm text-muted">Registered players</p>
+            <p className="text-2xl font-semibold">
+              {serverStatsQuery.data
+                ? formatNumber(serverStatsQuery.data.total_players)
+                : "—"}
+            </p>
+          </Card>
+        </div>
+        {serverStatsQuery.error && <ErrorState error={serverStatsQuery.error} />}
+        <Card className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="font-semibold">Online players</h3>
+              <p className="text-sm text-muted">
+                Select a player to open moderation and account controls.
+              </p>
+            </div>
+            <Link
+              to="/users?online=1"
+              className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-medium transition-colors hover:bg-surface-3"
+            >
+              Browse online players
+            </Link>
+          </div>
+          {onlinePlayersQuery.isPending && (
+            <LoadingState label="Loading online players..." />
+          )}
+          {onlinePlayersQuery.error && (
+            <ErrorState error={onlinePlayersQuery.error} />
+          )}
+          {onlinePlayersQuery.isSuccess &&
+            (onlinePlayersQuery.data.length === 0 ? (
+              <EmptyState label="No players are online right now." />
+            ) : (
+              <ul className="grid gap-1 sm:grid-cols-2">
+                {onlinePlayersQuery.data.map((onlinePlayer) => (
+                  <li key={onlinePlayer.id}>
+                    <OnlinePlayerButton
+                      player={onlinePlayer}
+                      selected={selectedUserId === onlinePlayer.id}
+                      onSelect={() => {
+                        setSelectedUserId(onlinePlayer.id);
+                        setReason("");
+                      }}
+                    />
+                  </li>
+                ))}
+              </ul>
+            ))}
+        </Card>
+      </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Player management</h2>
@@ -265,6 +346,36 @@ export function AdminPage() {
         </Card>
       </section>
     </div>
+  );
+}
+
+function OnlinePlayerButton({
+  player,
+  selected,
+  onSelect,
+}: {
+  player: Player;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-surface-2 ${
+        selected ? "bg-surface-2" : ""
+      }`}
+    >
+      <Avatar
+        playerId={player.id}
+        alt={`${player.name}'s avatar`}
+        className="h-9 w-9 rounded-lg bg-surface-3 object-cover"
+      />
+      <span className="min-w-0 flex-1 truncate text-sm font-medium">
+        {player.name}
+      </span>
+      <span className="shrink-0 text-xs text-muted">#{player.id}</span>
+    </button>
   );
 }
 

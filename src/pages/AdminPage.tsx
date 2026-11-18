@@ -9,7 +9,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { GradeBadge } from "@/components/GradeBadge";
 import { ModBadges } from "@/components/ModBadges";
 import { PillTabs } from "@/components/ui/PillTabs";
-import { api } from "@/lib/api/client";
+import { api, type AdminTopPlayPeriod } from "@/lib/api/client";
 import type {
   AdminMap,
   AdminUser,
@@ -74,6 +74,8 @@ export function AdminPage() {
     "online",
   );
   const [topPlaysMode, setTopPlaysMode] = useState(0);
+  const [topPlaysPeriod, setTopPlaysPeriod] =
+    useState<AdminTopPlayPeriod>("1d");
   const [offlineVisibleCount, setOfflineVisibleCount] = useState(20);
   const [selectedClanId, setSelectedClanId] = useState<number | null>(null);
   const [reason, setReason] = useState("");
@@ -104,9 +106,11 @@ export function AdminPage() {
   });
 
   const topPlaysQuery = useQuery({
-    queryKey: ["admin-server-top-plays", topPlaysMode],
+    queryKey: ["admin-server-top-plays", topPlaysMode, topPlaysPeriod],
     queryFn: () =>
-      api.fetchTopPlays(topPlaysMode, { limit: 5 }).then((result) => result.data),
+      api
+        .fetchAdminTopPlays(topPlaysMode, topPlaysPeriod, 10)
+        .then((result) => result.data),
     enabled: isAdmin,
     staleTime: 60_000,
   });
@@ -410,6 +414,20 @@ export function AdminPage() {
                 {mode.label}
               </option>
             ))}
+          </select>
+          <select
+            value={topPlaysPeriod}
+            onChange={(event) =>
+              setTopPlaysPeriod(event.target.value as AdminTopPlayPeriod)
+            }
+            aria-label="Top plays time period"
+            className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
+          >
+            <option value="1h">Last hour</option>
+            <option value="1d">Last 24 hours</option>
+            <option value="1w">Last 7 days</option>
+            <option value="1m">Last 30 days</option>
+            <option value="3m">Last 90 days</option>
           </select>
         </div>
         {topPlaysQuery.isPending ? (

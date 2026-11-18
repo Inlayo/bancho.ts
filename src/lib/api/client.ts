@@ -32,6 +32,7 @@ export type LeaderboardSort =
   | "playtime";
 
 export type ScoreScope = "best" | "recent";
+export type AdminTopPlayPeriod = "1h" | "1d" | "1w" | "1m" | "3m";
 
 export const api = {
   fetchServerStats: () => apiGet<ServerStats>("/v2/server/stats"),
@@ -277,6 +278,17 @@ export const api = {
     apiGet<ScoreDetail[]>("/v2/scores/top-plays", {
       mode,
       limit: options.limit ?? 10,
+    }),
+
+  fetchAdminTopPlays: (
+    mode: number,
+    period: AdminTopPlayPeriod,
+    limit = 10,
+  ) =>
+    apiGet<ScoreDetail[]>("/v2/admin/top-plays", {
+      mode,
+      period,
+      limit,
     }),
 
   deleteCurrentSession: () => apiDelete<null>("/v2/sessions/current"),

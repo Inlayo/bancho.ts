@@ -69,7 +69,7 @@ export function ScorePage() {
               event.currentTarget.style.display = "none";
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/40 to-transparent" />
+          <div className="absolute inset-0 bg-surface/70" />
           <div className="absolute inset-x-5 bottom-3">
             <Link
               to={`/b/${beatmap.id}?mode=${splitModeId(score.mode).baseMode}&rx=${splitModeId(score.mode).submode === "relax" ? 1 : splitModeId(score.mode).submode === "autopilot" ? 2 : 0}`}

@@ -69,7 +69,7 @@ export function ClanPage() {
   return (
     <div className="space-y-6">
       <Card padded={false}>
-        <div className="h-16 bg-gradient-to-r from-accent/25 via-accent-2/15 to-surface-2" />
+        <div className="h-16 bg-surface-2" />
         <div className="space-y-1 px-5 py-4 sm:px-6">
           <h1 className="text-xl font-semibold">
             <span className="text-accent">[{clan.tag}]</span> {clan.name}

@@ -28,8 +28,6 @@ export default {
           DEFAULT: "#b8c4ff",
           hover: "#cbd4ff",
           soft: "#b8c4ff26",
-          // secondary hue, used sparingly in gradients
-          2: "#8798e8",
         },
       },
       fontFamily: {

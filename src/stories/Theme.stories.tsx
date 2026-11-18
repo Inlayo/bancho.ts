@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
 /**
- * The brand theme: a near-black neutral palette with a pastel indigo accent
- * (and a violet secondary used sparingly in gradients). Tokens are
- * defined in `tailwind.config.js` and used via utility classes; this
- * page documents them for reference.
+ * The brand theme uses a near-black neutral palette with a pastel indigo
+ * accent. Tokens are defined in `tailwind.config.js` and used via utility
+ * classes; this page documents them for reference.
  */
 const COLORS = [
   { name: "canvas", className: "bg-canvas", usage: "page background" },
@@ -15,7 +14,6 @@ const COLORS = [
   { name: "muted", className: "bg-muted", usage: "secondary text" },
   { name: "accent", className: "bg-accent", usage: "brand, links, emphasis, primary buttons" },
   { name: "accent-hover", className: "bg-accent-hover", usage: "accent hover states" },
-  { name: "accent-2", className: "bg-accent-2", usage: "secondary hue, gradients only" },
 ];
 
 const SPACING = [

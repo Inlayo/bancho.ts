@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 
@@ -955,17 +960,23 @@ function PlayerManagement({
   const roleMask = ROLE_OPTIONS.reduce((mask, role) => mask | role.bit, 0);
   const [scoreMode, setScoreMode] = useState(0);
   const [scoreScope, setScoreScope] = useState<"best" | "recent">("best");
-  const scoresQuery = useQuery({
+  const scoresQuery = useInfiniteQuery({
     queryKey: ["admin-player-scores", user.id, scoreMode, scoreScope],
-    queryFn: () =>
+    queryFn: ({ pageParam }) =>
       api.fetchPlayerScores(user.id, {
         scope: scoreScope,
         mode: scoreMode,
-        limit: 10,
+        limit: 6,
+        offset: pageParam,
         ppOnly: true,
         includeFailed: false,
       }).then((result) => result.data),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length > 5 ? allPages.length * 5 : undefined,
   });
+  const playerScores =
+    scoresQuery.data?.pages.flatMap((page) => page.slice(0, 5)) ?? [];
   const userName = displayUserName(user.name, user.id);
 
   function toggleRole(bit: number, enabled: boolean) {
@@ -1062,6 +1073,34 @@ function PlayerManagement({
       </Card>
 
       <Card className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold">User memo</h3>
+          <span className="text-xs text-muted">For staff only</span>
+        </div>
+        <label className="block space-y-1.5">
+          <textarea
+            value={memoDraft}
+            onChange={(event) => setMemoDraft(event.target.value)}
+            rows={5}
+            maxLength={2000}
+            className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
+            placeholder="Leave a note for this user..."
+            disabled={pending}
+          />
+        </label>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            disabled={pending || memoDraft === (user.admin_note ?? "")}
+            onClick={() => onSaveMemo(memoDraft)}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            Save memo
+          </button>
+        </div>
+      </Card>
+
+      <Card className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold">Player scores</h3>
@@ -1095,7 +1134,7 @@ function PlayerManagement({
           <LoadingState label="Loading player scores..." />
         ) : scoresQuery.error ? (
           <ErrorState error={scoresQuery.error} />
-        ) : scoresQuery.data.length === 0 ? (
+        ) : playerScores.length === 0 ? (
           <EmptyState
             label={
               scoreScope === "best"
@@ -1104,40 +1143,28 @@ function PlayerManagement({
             }
           />
         ) : (
-          <ul className="space-y-1.5">
-            {scoresQuery.data.map((score) => (
-              <AdminScoreRow key={score.id} score={score} />
-            ))}
-          </ul>
+          <div className="space-y-4">
+            <ul className="space-y-1.5">
+              {playerScores.map((score) => (
+                <AdminScoreRow key={score.id} score={score} />
+              ))}
+            </ul>
+            {scoresQuery.hasNextPage && (
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => void scoresQuery.fetchNextPage()}
+                  disabled={scoresQuery.isFetchingNextPage}
+                  className="rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-surface-2 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {scoresQuery.isFetchingNextPage
+                    ? "Loading scores..."
+                    : "Load 5 more"}
+                </button>
+              </div>
+            )}
+          </div>
         )}
-      </Card>
-
-      <Card className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold">User memo</h3>
-          <span className="text-xs text-muted">For staff only</span>
-        </div>
-        <label className="block space-y-1.5">
-          <textarea
-            value={memoDraft}
-            onChange={(event) => setMemoDraft(event.target.value)}
-            rows={5}
-            maxLength={2000}
-            className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
-            placeholder="Leave a note for this user..."
-            disabled={pending}
-          />
-        </label>
-        <div className="flex justify-end">
-          <button
-            type="button"
-            disabled={pending || memoDraft === (user.admin_note ?? "")}
-            onClick={() => onSaveMemo(memoDraft)}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            Save memo
-          </button>
-        </div>
       </Card>
 
       <Card className="space-y-4">

@@ -206,7 +206,7 @@ export function PlayerPage() {
     <div className="space-y-6">
       {/* profile header */}
       <Card padded={false}>
-        <div className="relative h-24 bg-gradient-to-r from-accent/25 via-accent-2/15 to-surface-2">
+        <div className="relative h-24 bg-surface-2">
           {/* straddles the banner seam; the info strip below reserves its width */}
           <Avatar
             playerId={player.id}
@@ -392,7 +392,7 @@ function LevelBar({ totalScore }: { totalScore: number }) {
       <span className="text-xl font-semibold text-accent">{level}</span>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-3">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-accent to-accent-2"
+          className="h-full rounded-full bg-accent"
           style={{ width: `${Math.round(progress * 100)}%` }}
         />
       </div>

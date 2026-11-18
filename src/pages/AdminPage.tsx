@@ -396,39 +396,49 @@ export function AdminPage() {
       </section>
 
       <section className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h2 className="text-xl font-semibold">Server top plays</h2>
             <p className="text-sm text-muted">
               Review standout scores and download available replays.
             </p>
           </div>
-          <select
-            value={topPlaysMode}
-            onChange={(event) => setTopPlaysMode(Number(event.target.value))}
-            aria-label="Server top plays game mode"
-            className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
-          >
-            {MODE_OPTIONS.map((mode) => (
-              <option key={mode.id} value={mode.id}>
-                {mode.label}
-              </option>
-            ))}
-          </select>
-          <select
-            value={topPlaysPeriod}
-            onChange={(event) =>
-              setTopPlaysPeriod(event.target.value as AdminTopPlayPeriod)
-            }
-            aria-label="Top plays time period"
-            className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
-          >
-            <option value="1h">Last hour</option>
-            <option value="1d">Last 24 hours</option>
-            <option value="1w">Last 7 days</option>
-            <option value="1m">Last 30 days</option>
-            <option value="3m">Last 90 days</option>
-          </select>
+          <div className="grid gap-3 rounded-xl border border-line bg-surface-2/50 p-3 sm:grid-cols-2 lg:w-[28rem]">
+            <label className="grid min-w-0 gap-1.5">
+              <span className="text-xs font-medium text-muted">Game mode</span>
+              <select
+                value={topPlaysMode}
+                onChange={(event) =>
+                  setTopPlaysMode(Number(event.target.value))
+                }
+                aria-label="Server top plays game mode"
+                className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
+              >
+                {MODE_OPTIONS.map((mode) => (
+                  <option key={mode.id} value={mode.id}>
+                    {mode.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid min-w-0 gap-1.5">
+              <span className="text-xs font-medium text-muted">Time range</span>
+              <select
+                value={topPlaysPeriod}
+                onChange={(event) =>
+                  setTopPlaysPeriod(event.target.value as AdminTopPlayPeriod)
+                }
+                aria-label="Top plays time period"
+                className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
+              >
+                <option value="1h">Last hour</option>
+                <option value="1d">Last 24 hours</option>
+                <option value="1w">Last 7 days</option>
+                <option value="1m">Last 30 days</option>
+                <option value="3m">Last 90 days</option>
+              </select>
+            </label>
+          </div>
         </div>
         {topPlaysQuery.isPending ? (
           <LoadingState label="Loading server top plays..." />

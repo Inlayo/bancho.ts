@@ -6,10 +6,24 @@ import { Avatar } from "@/components/Avatar";
 import { BeatmapThumb } from "@/components/BeatmapThumb";
 import { Card } from "@/components/ui/Card";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
+import { GradeBadge } from "@/components/GradeBadge";
+import { ModBadges } from "@/components/ModBadges";
+import { PillTabs } from "@/components/ui/PillTabs";
 import { api } from "@/lib/api/client";
-import type { AdminMap, AdminUser, Player } from "@/lib/api/types";
+import type {
+  AdminMap,
+  AdminUser,
+  Player,
+  PlayerScore,
+} from "@/lib/api/types";
 import { useAuth } from "@/lib/auth";
-import { formatNumber } from "@/lib/format";
+import { replayDownloadUrl } from "@/lib/assets";
+import {
+  formatAccuracy,
+  formatNumber,
+  formatTimeAgo,
+} from "@/lib/format";
+import { splitModeId } from "@/lib/gamemodes";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 const ADMINISTRATOR = 1 << 13;
@@ -53,6 +67,10 @@ export function AdminPage() {
   const queryClient = useQueryClient();
   const [userSearch, setUserSearch] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [playerListMode, setPlayerListMode] = useState<"online" | "offline">(
+    "online",
+  );
+  const [offlineVisibleCount, setOfflineVisibleCount] = useState(20);
   const [reason, setReason] = useState("");
   const [wipeMode, setWipeMode] = useState("all");
   const [mapIdInput, setMapIdInput] = useState("");
@@ -74,19 +92,50 @@ export function AdminPage() {
 
   const serverStatsQuery = useQuery({
     queryKey: ["server-stats"],
-    queryFn: () => api.fetchServerStats().then((result) => result.data),
+    queryFn: () => api.fetchServerStats(),
+    select: (result) => result.data,
     enabled: isAdmin,
     refetchInterval: 30_000,
   });
 
   const onlinePlayersQuery = useQuery({
     queryKey: ["admin-online-players"],
-    queryFn: () =>
-      api.fetchPlayers({ online: true, page: 1, pageSize: 20 }).then(
-        (result) => result.data,
-      ),
+    queryFn: async () => {
+      const players: Player[] = [];
+      let page = 1;
+      while (true) {
+        const result = await api.fetchPlayers({
+          online: true,
+          page,
+          pageSize: 100,
+        });
+        players.push(...result.data);
+        if (result.data.length < 100) return players;
+        page += 1;
+      }
+    },
     enabled: isAdmin,
     refetchInterval: 30_000,
+  });
+
+  const offlinePlayersQuery = useQuery({
+    queryKey: ["admin-offline-players"],
+    queryFn: async () => {
+      const players: Awaited<ReturnType<typeof api.fetchAdminUsers>>["data"] = [];
+      let page = 1;
+      while (true) {
+        const result = await api.fetchAdminUsers({
+          page,
+          pageSize: 100,
+          includeHidden: true,
+        });
+        players.push(...result.data);
+        if (result.data.length < 100) return players;
+        page += 1;
+      }
+    },
+    enabled: isAdmin && playerListMode === "offline",
+    staleTime: 60_000,
   });
 
   const userQuery = useQuery({
@@ -107,6 +156,9 @@ export function AdminPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["admin-user", selectedUserId] }),
         queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["admin-player-scores", selectedUserId],
+        }),
       ]);
     },
   });
@@ -124,6 +176,12 @@ export function AdminPage() {
   const selectedUser = userQuery.data;
   const selectedMap = mapQuery.data;
   const canManageStaff = (player.priv & DEVELOPER) !== 0;
+  const onlinePlayerIds = new Set(
+    (onlinePlayersQuery.data ?? []).map((onlinePlayer) => onlinePlayer.id),
+  );
+  const offlinePlayers = (offlinePlayersQuery.data ?? []).filter(
+    (offlinePlayer) => !onlinePlayerIds.has(offlinePlayer.id),
+  );
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -141,7 +199,7 @@ export function AdminPage() {
             <p className="text-sm text-muted">Players online</p>
             <p className="text-2xl font-semibold text-accent">
               {serverStatsQuery.data
-                ? formatNumber(serverStatsQuery.data.online_players)
+                ? formatAdminNumber(serverStatsQuery.data.online_players)
                 : "—"}
             </p>
           </Card>
@@ -149,7 +207,7 @@ export function AdminPage() {
             <p className="text-sm text-muted">Registered players</p>
             <p className="text-2xl font-semibold">
               {serverStatsQuery.data
-                ? formatNumber(serverStatsQuery.data.total_players)
+                ? formatAdminNumber(serverStatsQuery.data.total_players)
                 : "—"}
             </p>
           </Card>
@@ -158,43 +216,130 @@ export function AdminPage() {
         <Card className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h3 className="font-semibold">Online players</h3>
+              <h3 className="font-semibold">
+                {playerListMode === "online" ? "Online players" : "Offline players"}
+              </h3>
               <p className="text-sm text-muted">
                 Select a player to open moderation and account controls.
               </p>
             </div>
-            <Link
-              to="/users?online=1"
-              className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-medium transition-colors hover:bg-surface-3"
-            >
-              Browse online players
-            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-pressed={playerListMode === "online"}
+                onClick={() => setPlayerListMode("online")}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  playerListMode === "online"
+                    ? "bg-accent text-white"
+                    : "border border-line bg-surface-2 hover:bg-surface-3"
+                }`}
+              >
+                Online
+              </button>
+              <button
+                type="button"
+                aria-pressed={playerListMode === "offline"}
+                onClick={() => {
+                  setPlayerListMode("offline");
+                  setOfflineVisibleCount(20);
+                }}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  playerListMode === "offline"
+                    ? "bg-accent text-white"
+                    : "border border-line bg-surface-2 hover:bg-surface-3"
+                }`}
+              >
+                Offline
+              </button>
+            </div>
           </div>
-          {onlinePlayersQuery.isPending && (
-            <LoadingState label="Loading online players..." />
-          )}
-          {onlinePlayersQuery.error && (
-            <ErrorState error={onlinePlayersQuery.error} />
-          )}
-          {onlinePlayersQuery.isSuccess &&
-            (onlinePlayersQuery.data.length === 0 ? (
-              <EmptyState label="No players are online right now." />
-            ) : (
-              <ul className="grid gap-1 sm:grid-cols-2">
-                {onlinePlayersQuery.data.map((onlinePlayer) => (
-                  <li key={onlinePlayer.id}>
-                    <OnlinePlayerButton
-                      player={onlinePlayer}
-                      selected={selectedUserId === onlinePlayer.id}
-                      onSelect={() => {
-                        setSelectedUserId(onlinePlayer.id);
-                        setReason("");
-                      }}
-                    />
-                  </li>
+          {playerListMode === "online" ? (
+            <>
+              {onlinePlayersQuery.isPending && (
+                <LoadingState label="Loading online players..." />
+              )}
+              {onlinePlayersQuery.error && (
+                <ErrorState error={onlinePlayersQuery.error} />
+              )}
+              {onlinePlayersQuery.isSuccess &&
+                (onlinePlayersQuery.data.length === 0 ? (
+                  <EmptyState label="No players are online right now." />
+                ) : (
+                  <ul className="grid gap-1 sm:grid-cols-2">
+                    {onlinePlayersQuery.data.slice(0, 20).map((onlinePlayer) => (
+                      <li key={onlinePlayer.id}>
+                        <OnlinePlayerButton
+                          id={onlinePlayer.id}
+                          name={onlinePlayer.name}
+                          selected={selectedUserId === onlinePlayer.id}
+                          onSelect={() => {
+                            setSelectedUserId(onlinePlayer.id);
+                            setReason("");
+                          }}
+                        />
+                      </li>
+                    ))}
+                  </ul>
                 ))}
-              </ul>
-            ))}
+              <Link
+                to="/users?online=1"
+                className="inline-flex w-fit rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-medium transition-colors hover:bg-surface-3"
+              >
+                Browse online players
+              </Link>
+            </>
+          ) : (
+            <>
+              {onlinePlayersQuery.isPending && (
+                <LoadingState label="Checking online player status..." />
+              )}
+              {onlinePlayersQuery.error && (
+                <ErrorState error={onlinePlayersQuery.error} />
+              )}
+              {offlinePlayersQuery.isPending && (
+                <LoadingState label="Loading offline players..." />
+              )}
+              {offlinePlayersQuery.error && (
+                <ErrorState error={offlinePlayersQuery.error} />
+              )}
+              {onlinePlayersQuery.isSuccess &&
+                offlinePlayersQuery.isSuccess &&
+                (offlinePlayers.length === 0 ? (
+                  <EmptyState label="No offline players found." />
+                ) : (
+                  <>
+                    <ul className="grid gap-1 sm:grid-cols-2">
+                      {offlinePlayers
+                        .slice(0, offlineVisibleCount)
+                        .map((offlinePlayer) => (
+                          <li key={offlinePlayer.id}>
+                            <OnlinePlayerButton
+                              id={offlinePlayer.id}
+                              name={offlinePlayer.name}
+                              selected={selectedUserId === offlinePlayer.id}
+                              onSelect={() => {
+                                setSelectedUserId(offlinePlayer.id);
+                                setReason("");
+                              }}
+                            />
+                          </li>
+                        ))}
+                    </ul>
+                    {offlineVisibleCount < offlinePlayers.length && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOfflineVisibleCount((count) => count + 20)
+                        }
+                        className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-medium transition-colors hover:bg-surface-3"
+                      >
+                        Load more offline players
+                      </button>
+                    )}
+                  </>
+                ))}
+            </>
+          )}
         </Card>
       </section>
 
@@ -232,7 +377,9 @@ export function AdminPage() {
                         alt={`${user.name}'s avatar`}
                         className="h-9 w-9 rounded-lg bg-surface-3 object-cover"
                       />
-                      <span className="font-medium">{user.name}</span>
+                      <span className="font-medium">
+                        {displayUserName(user.name, user.id)}
+                      </span>
                       <span className="text-muted">#{user.id}</span>
                     </span>
                   </button>
@@ -350,11 +497,13 @@ export function AdminPage() {
 }
 
 function OnlinePlayerButton({
-  player,
+  id,
+  name,
   selected,
   onSelect,
 }: {
-  player: Player;
+  id: number;
+  name: unknown;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -367,16 +516,118 @@ function OnlinePlayerButton({
       }`}
     >
       <Avatar
-        playerId={player.id}
-        alt={`${player.name}'s avatar`}
+        playerId={id}
+        alt={`${displayUserName(name, id)}'s avatar`}
         className="h-9 w-9 rounded-lg bg-surface-3 object-cover"
       />
       <span className="min-w-0 flex-1 truncate text-sm font-medium">
-        {player.name}
+        {displayUserName(name, id)}
       </span>
-      <span className="shrink-0 text-xs text-muted">#{player.id}</span>
+      <span className="shrink-0 text-xs text-muted">#{id}</span>
     </button>
   );
+}
+
+function AdminScoreRow({ score }: { score: PlayerScore }) {
+  const beatmap = score.beatmap;
+  const { baseMode, submode } = splitModeId(score.mode);
+  const rx = submode === "relax" ? 1 : submode === "autopilot" ? 2 : 0;
+
+  return (
+    <li className="flex items-center gap-3 overflow-hidden rounded-xl border border-line bg-surface px-3 py-2 transition-colors hover:bg-surface-2">
+      {beatmap ? (
+        <BeatmapThumb
+          setId={beatmap.set_id}
+          className="h-12 w-[5.25rem] shrink-0 rounded-lg"
+        />
+      ) : (
+        <span className="block h-12 w-[5.25rem] shrink-0 rounded-lg bg-surface-3" />
+      )}
+      <GradeBadge grade={score.grade} />
+      <div className="min-w-0 flex-1">
+        {beatmap ? (
+          <Link
+            to={`/b/${beatmap.id}?mode=${baseMode}&rx=${rx}`}
+            className="block truncate font-medium hover:text-accent"
+          >
+            {beatmap.artist} - {beatmap.title}{" "}
+            <span className="text-muted">[{beatmap.version}]</span>
+          </Link>
+        ) : (
+          <span className="block truncate font-medium text-muted">
+            Unknown beatmap
+          </span>
+        )}
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+          <span>{formatTimeAgo(score.play_time)}</span>
+          <ModBadges mods={score.mods} />
+          <span>{formatAdminAccuracy(score.acc)}</span>
+          <span>{formatAdminNumber(score.max_combo)}x</span>
+        </div>
+      </div>
+      <div className="shrink-0 text-right">
+        <p className="font-bold text-accent">
+          {formatAdminNumber(score.pp)}pp
+        </p>
+        <p className="text-xs text-muted">{formatAdminNumber(score.score)}</p>
+        <Link
+          to={`/s/${score.id}`}
+          className="text-xs text-accent hover:text-accent-hover"
+        >
+          View
+        </Link>
+      </div>
+      {score.grade !== "F" && (
+        <a
+          href={replayDownloadUrl(score.id)}
+          download
+          aria-label={`Download replay for score ${score.id}`}
+          title="Download replay to watch in osu!"
+          className="shrink-0 rounded-lg p-2 text-muted transition-colors hover:bg-surface-3 hover:text-slate-100"
+        >
+          <DownloadIcon />
+        </a>
+      )}
+    </li>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+      aria-hidden
+    >
+      <path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14" />
+    </svg>
+  );
+}
+
+function displayUserName(name: unknown, userId: number): string {
+  if (
+    typeof name !== "string" ||
+    name.trim().length === 0 ||
+    name.trim().toLowerCase() === "nan"
+  ) {
+    return `User #${userId}`;
+  }
+  return name;
+}
+
+function formatAdminNumber(value: number | null | undefined): string {
+  return typeof value === "number" && Number.isFinite(value)
+    ? formatNumber(value)
+    : "—";
+}
+
+function formatAdminAccuracy(value: number): string {
+  return Number.isFinite(value) ? formatAccuracy(value) : "—";
 }
 
 function PlayerManagement({
@@ -417,6 +668,20 @@ function PlayerManagement({
   const hasStaffRole = (user.priv & (1 << 12 | ADMINISTRATOR | DEVELOPER)) !== 0;
   const canEditRoles = canManageStaff || !hasStaffRole;
   const roleMask = ROLE_OPTIONS.reduce((mask, role) => mask | role.bit, 0);
+  const [scoreMode, setScoreMode] = useState(0);
+  const [scoreScope, setScoreScope] = useState<"best" | "recent">("best");
+  const scoresQuery = useQuery({
+    queryKey: ["admin-player-scores", user.id, scoreMode, scoreScope],
+    queryFn: () =>
+      api.fetchPlayerScores(user.id, {
+        scope: scoreScope,
+        mode: scoreMode,
+        limit: 10,
+        ppOnly: true,
+        includeFailed: false,
+      }).then((result) => result.data),
+  });
+  const userName = displayUserName(user.name, user.id);
 
   function toggleRole(bit: number, enabled: boolean) {
     const newRoles = (user.priv & roleMask) & ~bit;
@@ -429,18 +694,18 @@ function PlayerManagement({
         <div className="flex flex-wrap items-center gap-3">
           <Link
             to={`/u/${user.id}`}
-            aria-label={`View ${user.name}'s profile`}
+            aria-label={`View ${userName}'s profile`}
             className="rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <Avatar
               playerId={user.id}
-              alt={`${user.name}'s avatar`}
+              alt={`${userName}'s avatar`}
               className="h-12 w-12 rounded-xl bg-surface-2 object-cover"
             />
           </Link>
           <div>
             <h3 className="text-lg font-semibold">
-              {user.name} <span className="text-sm text-muted">#{user.id}</span>
+              {userName} <span className="text-sm text-muted">#{user.id}</span>
             </h3>
             <p className="text-sm text-muted">
               {restricted ? "Restricted" : "Unrestricted"} · {user.country}
@@ -498,7 +763,7 @@ function PlayerManagement({
                 type="button"
                 disabled={pending || reason.trim().length < 3}
                 onClick={() => {
-                  if (window.confirm(`Restrict ${user.name}? A notice will be emailed.`)) {
+                  if (window.confirm(`Restrict ${userName}? A notice will be emailed.`)) {
                     onRestrict();
                   }
                 }}
@@ -509,6 +774,57 @@ function PlayerManagement({
             )}
           </div>
         </div>
+      </Card>
+
+      <Card className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold">Player scores</h3>
+            <p className="text-sm text-muted">
+              Open score details or download a replay to watch in osu!.
+            </p>
+          </div>
+          <select
+            value={scoreMode}
+            onChange={(event) => setScoreMode(Number(event.target.value))}
+            aria-label="Score game mode"
+            className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
+          >
+            {MODE_OPTIONS.map((mode) => (
+              <option key={mode.id} value={mode.id}>
+                {mode.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <PillTabs
+          tabs={[
+            { value: "best", label: "Top Play" },
+            { value: "recent", label: "Recent Play" },
+          ]}
+          value={scoreScope}
+          onChange={setScoreScope}
+          grow
+        />
+        {scoresQuery.isPending ? (
+          <LoadingState label="Loading player scores..." />
+        ) : scoresQuery.error ? (
+          <ErrorState error={scoresQuery.error} />
+        ) : scoresQuery.data.length === 0 ? (
+          <EmptyState
+            label={
+              scoreScope === "best"
+                ? "No top plays found for this mode."
+                : "No recent plays found for this mode."
+            }
+          />
+        ) : (
+          <ul className="space-y-1.5">
+            {scoresQuery.data.map((score) => (
+              <AdminScoreRow key={score.id} score={score} />
+            ))}
+          </ul>
+        )}
       </Card>
 
       <Card className="space-y-4">
@@ -555,9 +871,9 @@ function PlayerManagement({
               {user.stats.map((stat) => (
                 <tr key={stat.mode} className="border-t border-line">
                   <td className="py-2 pr-3">{MODE_OPTIONS.find((mode) => mode.id === stat.mode)?.label ?? stat.mode}</td>
-                  <td className="py-2 pr-3">{formatNumber(stat.pp)}</td>
-                  <td className="py-2 pr-3">{formatNumber(stat.plays)}</td>
-                  <td className="py-2">{formatNumber(stat.rscore)}</td>
+                  <td className="py-2 pr-3">{formatAdminNumber(stat.pp)}</td>
+                  <td className="py-2 pr-3">{formatAdminNumber(stat.plays)}</td>
+                  <td className="py-2">{formatAdminNumber(stat.rscore)}</td>
                 </tr>
               ))}
             </tbody>

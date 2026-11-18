@@ -13,12 +13,15 @@ import { api } from "@/lib/api/client";
 import type {
   AdminMap,
   AdminUser,
+  Clan,
   Player,
   PlayerScore,
+  ScoreDetail,
 } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth";
 import { replayDownloadUrl } from "@/lib/assets";
 import {
+  formatDate,
   formatAccuracy,
   formatNumber,
   formatTimeAgo,
@@ -70,7 +73,9 @@ export function AdminPage() {
   const [playerListMode, setPlayerListMode] = useState<"online" | "offline">(
     "online",
   );
+  const [topPlaysMode, setTopPlaysMode] = useState(0);
   const [offlineVisibleCount, setOfflineVisibleCount] = useState(20);
+  const [selectedClanId, setSelectedClanId] = useState<number | null>(null);
   const [reason, setReason] = useState("");
   const [wipeMode, setWipeMode] = useState("all");
   const [mapIdInput, setMapIdInput] = useState("");
@@ -96,6 +101,14 @@ export function AdminPage() {
     select: (result) => result.data,
     enabled: isAdmin,
     refetchInterval: 30_000,
+  });
+
+  const topPlaysQuery = useQuery({
+    queryKey: ["admin-server-top-plays", topPlaysMode],
+    queryFn: () =>
+      api.fetchTopPlays(topPlaysMode, { limit: 5 }).then((result) => result.data),
+    enabled: isAdmin,
+    staleTime: 60_000,
   });
 
   const onlinePlayersQuery = useQuery({
@@ -136,6 +149,35 @@ export function AdminPage() {
     },
     enabled: isAdmin && playerListMode === "offline",
     staleTime: 60_000,
+  });
+
+  const clansQuery = useQuery({
+    queryKey: ["admin-clans"],
+    queryFn: async () => {
+      const clans: Clan[] = [];
+      let page = 1;
+      while (true) {
+        const result = await api.fetchClans({ page, pageSize: 100 });
+        clans.push(...result.data);
+        if (result.data.length < 100) return clans;
+        page += 1;
+      }
+    },
+    enabled: isAdmin,
+    staleTime: 5 * 60_000,
+  });
+
+  const selectedClanQuery = useQuery({
+    queryKey: ["admin-clan", selectedClanId],
+    queryFn: () => api.fetchClan(selectedClanId!).then((result) => result.data),
+    enabled: selectedClanId !== null && isAdmin,
+  });
+
+  const clanMembersQuery = useQuery({
+    queryKey: ["admin-clan-members", selectedClanId],
+    queryFn: () =>
+      api.fetchClanMembers(selectedClanId!).then((result) => result.data),
+    enabled: selectedClanId !== null && isAdmin,
   });
 
   const userQuery = useQuery({
@@ -190,6 +232,12 @@ export function AdminPage() {
         <p className="text-sm text-muted">
           Manage player access, scores, privileges, and beatmap status.
         </p>
+        <a
+          href="/phpmyadmin/"
+          className="inline-flex rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-medium transition-colors hover:bg-surface-3"
+        >
+          Open phpMyAdmin
+        </a>
       </header>
 
       <section className="space-y-4">
@@ -344,6 +392,148 @@ export function AdminPage() {
       </section>
 
       <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">Server top plays</h2>
+            <p className="text-sm text-muted">
+              Review standout scores and download available replays.
+            </p>
+          </div>
+          <select
+            value={topPlaysMode}
+            onChange={(event) => setTopPlaysMode(Number(event.target.value))}
+            aria-label="Server top plays game mode"
+            className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
+          >
+            {MODE_OPTIONS.map((mode) => (
+              <option key={mode.id} value={mode.id}>
+                {mode.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {topPlaysQuery.isPending ? (
+          <LoadingState label="Loading server top plays..." />
+        ) : topPlaysQuery.error ? (
+          <ErrorState error={topPlaysQuery.error} />
+        ) : topPlaysQuery.data.length === 0 ? (
+          <EmptyState label="No top plays found for this mode." />
+        ) : (
+          <ul className="space-y-1.5">
+            {topPlaysQuery.data.map((score) => (
+              <AdminScoreRow
+                key={score.id}
+                score={score}
+                player={score.player}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">Clan & member lookup</h2>
+          <p className="text-sm text-muted">
+            Inspect clan rosters and jump to a member&apos;s admin controls.
+          </p>
+        </div>
+        <Card className="space-y-4">
+          {clansQuery.error && <ErrorState error={clansQuery.error} />}
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium">Choose a clan</span>
+            <select
+              value={selectedClanId ?? ""}
+              onChange={(event) =>
+                setSelectedClanId(
+                  event.target.value ? Number(event.target.value) : null,
+                )
+              }
+              disabled={clansQuery.isPending || clansQuery.isError}
+              className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm disabled:opacity-50"
+            >
+              <option value="">
+                {clansQuery.isPending ? "Loading clans..." : "Select a clan"}
+              </option>
+              {(clansQuery.data ?? []).map((clan) => (
+                <option key={clan.id} value={clan.id}>
+                  [{clan.tag}] {clan.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {selectedClanQuery.error && (
+            <ErrorState error={selectedClanQuery.error} />
+          )}
+          {clanMembersQuery.error && (
+            <ErrorState error={clanMembersQuery.error} />
+          )}
+          {selectedClanQuery.data && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+              <div>
+                <h3 className="font-semibold">
+                  <span className="text-accent">
+                    [{selectedClanQuery.data.tag}]
+                  </span>{" "}
+                  {selectedClanQuery.data.name}
+                </h3>
+                <p className="text-sm text-muted">
+                  Founded {formatDate(selectedClanQuery.data.created_at)}
+                  {clanMembersQuery.data &&
+                    ` · ${clanMembersQuery.data.length} members`}
+                </p>
+              </div>
+              <Link
+                to={`/clan/${selectedClanQuery.data.id}`}
+                className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-medium transition-colors hover:bg-surface-3"
+              >
+                View clan page
+              </Link>
+            </div>
+          )}
+          {clanMembersQuery.isPending && selectedClanId !== null && (
+            <LoadingState label="Loading clan members..." />
+          )}
+          {clanMembersQuery.isSuccess &&
+            (clanMembersQuery.data.length === 0 ? (
+              <EmptyState label="This clan has no visible members." />
+            ) : (
+              <ul className="grid gap-1 sm:grid-cols-2">
+                {[...clanMembersQuery.data]
+                  .sort(
+                    (a, b) =>
+                      b.clan_priv - a.clan_priv || a.name.localeCompare(b.name),
+                  )
+                  .map((member) => (
+                    <li key={member.id}>
+                      <OnlinePlayerButton
+                        id={member.id}
+                        name={member.name}
+                        selected={selectedUserId === member.id}
+                        onSelect={() => {
+                          setSelectedUserId(member.id);
+                          setReason("");
+                          document
+                            .getElementById("player-management")
+                            ?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                      />
+                      <span className="px-3 pb-2 text-xs text-muted">
+                        {member.clan_priv === 3
+                          ? "Owner"
+                          : member.clan_priv === 2
+                            ? "Officer"
+                            : "Member"}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            ))}
+        </Card>
+      </section>
+
+      <section id="player-management" className="space-y-4">
         <h2 className="text-xl font-semibold">Player management</h2>
         <Card className="space-y-4">
           <label className="block space-y-1.5">
@@ -528,7 +718,13 @@ function OnlinePlayerButton({
   );
 }
 
-function AdminScoreRow({ score }: { score: PlayerScore }) {
+function AdminScoreRow({
+  score,
+  player,
+}: {
+  score: PlayerScore;
+  player?: ScoreDetail["player"];
+}) {
   const beatmap = score.beatmap;
   const { baseMode, submode } = splitModeId(score.mode);
   const rx = submode === "relax" ? 1 : submode === "autopilot" ? 2 : 0;
@@ -559,6 +755,14 @@ function AdminScoreRow({ score }: { score: PlayerScore }) {
           </span>
         )}
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+          {player && (
+            <Link
+              to={`/u/${player.id}`}
+              className="font-medium text-slate-200 hover:text-accent"
+            >
+              {displayUserName(player.name, player.id)}
+            </Link>
+          )}
           <span>{formatTimeAgo(score.play_time)}</span>
           <ModBadges mods={score.mods} />
           <span>{formatAdminAccuracy(score.acc)}</span>
@@ -628,6 +832,59 @@ function formatAdminNumber(value: number | null | undefined): string {
 
 function formatAdminAccuracy(value: number): string {
   return Number.isFinite(value) ? formatAccuracy(value) : "—";
+}
+
+function ModeStatChart({
+  stats,
+  metric,
+  label,
+}: {
+  stats: AdminUser["stats"];
+  metric: "pp" | "plays";
+  label: string;
+}) {
+  const maxValue = Math.max(
+    1,
+    ...stats.map((stat) =>
+      Number.isFinite(stat[metric]) ? stat[metric] : 0,
+    ),
+  );
+
+  return (
+    <div className="space-y-3 rounded-xl border border-line bg-surface-2 p-4">
+      <h4 className="text-sm font-semibold">{label}</h4>
+      <ul className="space-y-2.5">
+        {stats.map((stat) => {
+          const value = Number.isFinite(stat[metric]) ? stat[metric] : 0;
+          const width = Math.max(0, Math.min(100, (value / maxValue) * 100));
+          const mode =
+            MODE_OPTIONS.find((option) => option.id === stat.mode)?.label ??
+            `Mode ${stat.mode}`;
+
+          return (
+            <li key={stat.mode} className="space-y-1">
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="truncate text-muted">{mode}</span>
+                <span className="shrink-0 font-medium">
+                  {formatAdminNumber(value)}
+                </span>
+              </div>
+              <div
+                role="img"
+                aria-label={`${mode}: ${formatAdminNumber(value)} ${label.toLowerCase()}`}
+                className="h-1.5 overflow-hidden rounded-full bg-surface-3"
+              >
+                <div
+                  className="h-full rounded-full bg-accent"
+                  style={{ width: `${width}%` }}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 function PlayerManagement({
@@ -857,6 +1114,12 @@ function PlayerManagement({
 
       <Card className="space-y-4">
         <h3 className="text-lg font-semibold">Player statistics</h3>
+        {user.stats.length > 0 && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ModeStatChart stats={user.stats} metric="pp" label="Performance points" />
+            <ModeStatChart stats={user.stats} metric="plays" label="Plays" />
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="text-muted">

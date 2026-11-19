@@ -20,7 +20,11 @@ export function UsersPage() {
   const onlineOnly = searchParams.get("online") === "1";
   const showAllUsers =
     isAdmin && !onlineOnly && searchParams.get("all") !== "0";
-  usePageTitle(onlineOnly ? "Online players" : "Users");
+  usePageTitle(onlineOnly ? "Online players" : "Users", {
+    description: onlineOnly
+      ? "View players currently connected to Inlayo."
+      : "Browse registered Inlayo accounts, player profiles, and online status.",
+  });
 
   const usersQuery = useQuery({
     queryKey: ["users-list", onlineOnly, showAllUsers],

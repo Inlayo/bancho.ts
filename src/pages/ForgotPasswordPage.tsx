@@ -6,7 +6,9 @@ import { api } from "@/lib/api/client";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 export function ForgotPasswordPage() {
-  usePageTitle("Reset password");
+  usePageTitle("Reset password", {
+    description: "Request a password reset for your Inlayo account.",
+  });
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

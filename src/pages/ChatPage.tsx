@@ -32,7 +32,9 @@ function renderChatText(text: string) {
 }
 
 export function ChatPage() {
-  usePageTitle("Chat");
+  usePageTitle("Chat", {
+    description: "View private conversations and send messages to Inlayo players.",
+  });
   const { player } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();

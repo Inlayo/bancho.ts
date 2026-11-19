@@ -13,7 +13,9 @@ import { formatTimeAgo } from "@/lib/format";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 export function FriendsPage() {
-  usePageTitle("Friends");
+  usePageTitle("Friends", {
+    description: "Manage your Inlayo friends list and open player profiles.",
+  });
 
   const { player: me, isLoading } = useAuth();
 

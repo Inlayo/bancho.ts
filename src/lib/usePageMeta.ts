@@ -22,94 +22,92 @@ function getRouteMeta(pathname: string, appName: string): RouteMeta {
     return {
       title: "Home",
       description:
-        `Play osu! on ${appName}, set scores, and explore community leaderboards, players, and beatmaps.`,
+        `Play osu! on the ${appName} private osu! server, set scores, and browse rankings, player profiles, beatmaps, and top plays.`,
     };
   }
   if (pathname === "/leaderboard") {
     return {
       title: "Leaderboard",
       description:
-        `Browse ${appName} player rankings by game mode, performance, accuracy, ranked score, and play count.`,
+        `Browse player rankings on ${appName} by mode, performance, accuracy, ranked score, total score, and play count.`,
     };
   }
   if (pathname === "/topplays") {
     return {
       title: "Top Plays",
-      description:
-        `Explore standout player scores across osu! game modes on ${appName}.`,
+      description: `Browse standout and recent top scores across osu! vanilla, relax, and autopilot modes on ${appName}.`,
     };
   }
   if (pathname === "/clans") {
     return {
       title: "Clans",
-      description:
-        `Discover player-run clans and their members on the ${appName} osu! server.`,
+      description: `Browse and discover player clans and their members on ${appName}.`,
     };
   }
   if (pathname === "/chat") {
     return {
       title: "Chat",
-      description: `Start private conversations and keep in touch with players on ${appName}.`,
+      description: `View conversations and send private messages to players on ${appName}.`,
       noIndex: true,
     };
   }
   if (pathname.startsWith("/clan/")) {
     return {
       title: "Clan",
-      description: `View a ${appName} clan, its members, and its players.`,
+      description: `View a clan, its members, and player details on ${appName}.`,
     };
   }
   if (pathname.startsWith("/u/")) {
     return {
       title: "Player profile",
-      description: `View a ${appName} player's profile, scores, and statistics.`,
+      description: `View a player's profile, preferred mode, scores, statistics, and recent activity on ${appName}.`,
       type: "profile",
     };
   }
   if (pathname.startsWith("/b/")) {
     return {
       title: "Beatmap",
-      description: `View beatmap details and scores set on ${appName}.`,
+      description: `View beatmap details, difficulty settings, rankings, leaderboard scores, and favourites on ${appName}.`,
     };
   }
   if (pathname.startsWith("/s/")) {
     return {
       title: "Score",
-      description: `View an osu! score and its beatmap details from ${appName}.`,
+      description: `View score details, accuracy, performance points, modifiers, replay, player, and beatmap information on ${appName}.`,
     };
   }
   if (pathname === "/login") {
     return {
       title: "Sign in",
-      description: `Sign in to your ${appName} account to chat, manage friends, and play.`,
+      description: `Sign in to your ${appName} account to play, chat, manage friends, and change profile settings.`,
       noIndex: true,
     };
   }
   if (pathname === "/register") {
     return {
       title: "Create account",
-      description: `Create a ${appName} account to join the osu! community and set scores.`,
+      description: `Create a ${appName} account and connect the osu! client to set scores on the private server.`,
       noIndex: true,
     };
   }
   if (pathname === "/forgot-password") {
     return {
       title: "Reset password",
-      description: `Reset your ${appName} account password.`,
+      description: `Request a password reset for your ${appName} account.`,
       noIndex: true,
     };
   }
   if (pathname === "/verify-email") {
     return {
       title: "Verify email",
-      description: `Verify the email address associated with your ${appName} account.`,
+      description: `Verify the email address associated with your ${appName} account before account actions.`,
       noIndex: true,
     };
   }
   if (pathname === "/friends") {
     return {
       title: "Friends",
-      description: `Manage your ${appName} friends list and visit player profiles.`,
+      description: `Manage your friends list and visit connected player profiles on ${appName}.`,
       noIndex: true,
     };
   }
@@ -118,14 +116,21 @@ function getRouteMeta(pathname: string, appName: string): RouteMeta {
       title: "Players",
       description:
         new URLSearchParams(window.location.search).get("online") === "1"
-          ? `See which players are currently online on the ${appName} osu! server.`
-          : `Browse registered players on the ${appName} osu! server.`,
+          ? `See players currently connected to ${appName}.`
+          : `Browse registered players, accounts, online status, and profiles on ${appName}.`,
     };
   }
   if (pathname === "/settings") {
     return {
       title: "Account settings",
-      description: `Manage your ${appName} account and player profile.`,
+      description: `Change your ${appName} username, password, avatar, user page, country, and game preferences.`,
+      noIndex: true,
+    };
+  }
+  if (pathname === "/admin") {
+    return {
+      title: "Administration",
+      description: `Manage ${appName} users, privileges, restrictions, memos, scores, clans, maps, and server statistics.`,
       noIndex: true,
     };
   }

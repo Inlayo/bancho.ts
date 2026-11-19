@@ -12,7 +12,10 @@ import { usePageTitle } from "@/lib/usePageTitle";
 const PAGE_SIZE = 50;
 
 export function ClansPage() {
-  usePageTitle("Clans");
+  usePageTitle("Clans", {
+    description:
+      "Browse player clans on Inlayo, view clan tags and members, and open individual clan profiles.",
+  });
 
   const [searchParams, setSearchParams] = useSearchParams();
   const pageParam = Number(searchParams.get("page") ?? "1");

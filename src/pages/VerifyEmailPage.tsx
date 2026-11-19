@@ -6,7 +6,9 @@ import { api } from "@/lib/api/client";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 export function VerifyEmailPage() {
-  usePageTitle("Verify email");
+  usePageTitle("Verify email", {
+    description: "Verify the email address associated with your Inlayo account.",
+  });
 
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");

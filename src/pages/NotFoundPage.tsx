@@ -3,7 +3,9 @@ import { Link } from "react-router-dom";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 export function NotFoundPage() {
-  usePageTitle("Not found");
+  usePageTitle("Not found", {
+    description: "The requested Inlayo page could not be found.",
+  });
 
   return (
     <div className="py-24 text-center">

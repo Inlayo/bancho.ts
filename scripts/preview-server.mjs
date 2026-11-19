@@ -300,8 +300,9 @@ async function getMetadata(pathname, searchParams = new URLSearchParams()) {
   if (pathname === "/chat") {
     return {
       title: `Chat | ${appName}`,
-      description: `Start private conversations and keep in touch with players on ${appName}.`,
+      description: `View private conversations and send messages to players on ${appName}.`,
       type: "website",
+      noIndex: true,
       noIndex: true,
     };
   }
@@ -309,7 +310,7 @@ async function getMetadata(pathname, searchParams = new URLSearchParams()) {
   if (pathname === "/clans") {
     return {
       title: `Clans | ${appName}`,
-      description: `Browse player-run clans on ${appName}.`,
+      description: `Browse player clans, clan tags, and members on ${appName}.`,
       type: "website",
     };
   }
@@ -347,38 +348,43 @@ async function getMetadata(pathname, searchParams = new URLSearchParams()) {
 
   const pageMetadata = {
     "/": {
-      title: `${appName} · osu! community server`,
-      description: `Play osu! on ${appName}, set scores, and explore community leaderboards, players, and beatmaps.`,
+      title: `${appName} · Private osu! server`,
+      description: `Play osu! on the ${appName} private osu! server, set scores, and browse rankings, player profiles, beatmaps, and top plays.`,
       type: "website",
     },
     "/login": {
       title: `Sign in | ${appName}`,
-      description: `Sign in to your ${appName} account to chat, manage friends, and play.`,
+      description: `Sign in to your ${appName} account to play, chat, manage friends, and change account settings.`,
       type: "website",
+      noIndex: true,
       noIndex: true,
     },
     "/register": {
       title: `Create account | ${appName}`,
-      description: `Create a ${appName} account to join the osu! community and set scores.`,
+      description: `Create a ${appName} account and connect the osu! client to set scores on the private server.`,
       type: "website",
+      noIndex: true,
       noIndex: true,
     },
     "/forgot-password": {
       title: `Reset password | ${appName}`,
-      description: `Reset your ${appName} account password.`,
+      description: `Request a password reset for your ${appName} account.`,
       type: "website",
+      noIndex: true,
       noIndex: true,
     },
     "/verify-email": {
       title: `Verify email | ${appName}`,
-      description: `Verify your email address for ${appName}.`,
+      description: `Verify the email address associated with your ${appName} account.`,
       type: "website",
+      noIndex: true,
       noIndex: true,
     },
     "/friends": {
       title: `Friends | ${appName}`,
-      description: `Manage your ${appName} friends list and visit player profiles.`,
+      description: `Manage your friends list and open player profiles on ${appName}.`,
       type: "website",
+      noIndex: true,
       noIndex: true,
     },
     "/users": {
@@ -386,19 +392,20 @@ async function getMetadata(pathname, searchParams = new URLSearchParams()) {
         ? `Online players | ${appName}`
         : `Players | ${appName}`,
       description: searchParams.get("online") === "1"
-        ? `See which players are currently online on ${appName}.`
-        : `Browse registered players on ${appName}.`,
+        ? `See players currently connected to ${appName}.`
+        : `Browse registered accounts, player profiles, and online status on ${appName}.`,
       type: "website",
     },
     "/settings": {
       title: `Account settings | ${appName}`,
-      description: `Manage your ${appName} account and profile.`,
+      description: `Manage your username, password, avatar, country, preferred mode, and user page on ${appName}.`,
       type: "website",
+      noIndex: true,
       noIndex: true,
     },
     "/admin": {
       title: `Admin | ${appName}`,
-      description: `Manage ${appName}.`,
+      description: `Manage players, privileges, restrictions, memos, scores, clans, maps, and server statistics on ${appName}.`,
       type: "website",
       noIndex: true,
     },

@@ -70,7 +70,10 @@ const MAP_STATUSES = [
 ];
 
 export function AdminPage() {
-  usePageTitle("Administration");
+  usePageTitle("Administration", {
+    description:
+      "Manage Inlayo players, privileges, restrictions, memos, scores, clans, maps, and server statistics.",
+  });
   const { player, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [userSearch, setUserSearch] = useState("");

@@ -9,7 +9,9 @@ import { env } from "@/lib/env";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 export function RegisterPage() {
-  usePageTitle("Register");
+  usePageTitle("Register", {
+    description: "Create an Inlayo account and connect the osu! client to set scores on the private server.",
+  });
 
   const { player, register } = useAuth();
   const navigate = useNavigate();

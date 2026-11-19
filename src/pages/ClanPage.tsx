@@ -40,7 +40,7 @@ export function ClanPage() {
     {
       description: clanQuery.data
         ? [
-            `[${clanQuery.data.tag}] ${clanQuery.data.name} is a player clan on this server.`,
+            `[${clanQuery.data.tag}] ${clanQuery.data.name} is a player clan on Inlayo.`,
             membersQuery.data
               ? `${membersQuery.data.length} members.`
               : null,

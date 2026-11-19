@@ -8,7 +8,10 @@ import { formatNumber } from "@/lib/format";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 export function HomePage() {
-  usePageTitle("Home");
+  usePageTitle("Home", {
+    description:
+      "Connect the osu! client to Inlayo, create an account, set scores, and browse rankings, profiles, beatmaps, and top plays.",
+  });
 
   const { data: stats } = useQuery({
     queryKey: ["server-stats"],

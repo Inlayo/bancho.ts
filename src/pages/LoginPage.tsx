@@ -6,7 +6,9 @@ import { useAuth } from "@/lib/auth";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 export function LoginPage() {
-  usePageTitle("Sign in");
+  usePageTitle("Sign in", {
+    description: "Sign in to your Inlayo account to play, chat, manage friends, and change account settings.",
+  });
 
   const { player, login } = useAuth();
   const navigate = useNavigate();

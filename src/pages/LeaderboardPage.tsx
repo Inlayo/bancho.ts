@@ -122,7 +122,7 @@ export function LeaderboardPage() {
   });
 
   usePageTitle(`${modeName(modeId)} Leaderboard`, {
-    description: `See the ${modeName(modeId)} player leaderboard, with rankings for performance, accuracy, ranked score, and play count.`,
+    description: `Browse ${modeName(modeId)} rankings on Inlayo by performance points, accuracy, ranked score, total score, or play count.`,
   });
 
   function updateParams(next: {

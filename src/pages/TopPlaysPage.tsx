@@ -75,7 +75,7 @@ export function TopPlaysPage() {
   });
 
   usePageTitle(`${modeName(modeId)} Top Plays`, {
-    description: `Browse the top ${modeName(modeId)} scores recently recorded on this server.`,
+    description: `Browse the top ${modeName(modeId)} scores recently recorded on Inlayo, including players, PP, accuracy, mods, and beatmaps.`,
   });
 
   function setMode(nextModeId: number) {

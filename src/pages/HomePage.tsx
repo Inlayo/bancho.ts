@@ -111,7 +111,7 @@ export function HomePage() {
           <p className="mt-2 text-sm text-muted">
             Download{" "}
             <a
-              href="https://assets.inlayo.com/patcher/Inlayo-patcher.exe"
+              href="https://assets.inlayo.com/patcher/Inlayo-launcher.exe"
               target="_blank"
               rel="noreferrer"
               className="text-accent hover:text-accent-hover"
@@ -121,7 +121,7 @@ export function HomePage() {
             and open!
           </p>
           <code className="mt-3 block overflow-x-auto rounded-lg bg-canvas px-3 py-2 text-xs text-slate-200">
-            osu!.exe -devserver {env.banchoDomain} (I don’t recommend doing this, but if SmartScreen removes the patcher, use this method.)
+            osu!.exe -devserver {env.banchoDomain} (I don't recommend using this method, but if Inlayo-launcher doesn't work for you, you can use this method instead)
           </code>
         </Card>
 

@@ -116,7 +116,7 @@ export function HomePage() {
               rel="noreferrer"
               className="text-accent hover:text-accent-hover"
             >
-              Inlayo-patcher
+              Inlayo-launcher
             </a>{" "}
             and open!
           </p>

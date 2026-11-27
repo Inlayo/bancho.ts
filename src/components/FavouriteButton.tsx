@@ -45,7 +45,20 @@ export function FavouriteButton({ setId }: { setId: number }) {
           : "border-line bg-surface-2 hover:bg-surface-3"
       }`}
     >
-      {isFavourited ? "♥ Favourited" : "♡ Favourite"}
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill={isFavourited ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth="1.8"
+        className="h-5 w-5"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M20.8 8.8c0 5.1-8.8 10-8.8 10s-8.8-4.9-8.8-10A4.8 4.8 0 0 1 12 6.2a4.8 4.8 0 0 1 8.8 2.6Z"
+        />
+      </svg>
     </button>
   );
 }

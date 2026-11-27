@@ -210,13 +210,13 @@ export function BeatmapPage() {
           </div>
 
           <div className="flex gap-2">
-            <FavouriteButton setId={beatmap!.set_id} />
             <a
               href={`osu://b/${beatmap!.id}`}
               className="rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
             >
               osu!direct
             </a>
+            <FavouriteButton setId={beatmap!.set_id} />
             <a
               href={`https://osu.ppy.sh/beatmapsets/${beatmap!.set_id}#osu/${beatmap!.id}`}
               target="_blank"
